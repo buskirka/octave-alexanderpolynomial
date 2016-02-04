@@ -8,7 +8,8 @@ function rstr = pknot2str ( in_knot )
     endif
     
     knot=in_knot;
-
+    
+    intersections=shift(eye(size(knot,2)),1)
     % Find intersections of sections
     %  First, select each segment
     for n=1:size(knot,2)
@@ -36,8 +37,33 @@ function rstr = pknot2str ( in_knot )
             proj_w = edge_w([1,2]);
             proj_z = edge_z([1,2]);
 
+            % Calculate where the intersection of these two lines
+            % occurs; such that the point of overlap is
+            % p = (y-x)*solnpt(1) + x = (z-w)*solnpt(2) + w
             solnpt=[proj_x-proj_y,proj_z-proj_w]\(proj_x-proj_w)
-            if( 
+            if( 0 < min(solnpt) && max(solnpt) < 1 )
+                % In this case, where both coordinates are between
+                % 0 and 1, we know that an intersection of the two
+                % *line segments* (not just the lines) has occured.
+                printf(['Intersection on ', ...
+                        num2str(n), ...
+                        ' to ', ...
+                        num2str(m), ...
+                        ' found.\n']);
+                intersections(n,m)=solnpt(1);
+                intersections(m,n)=solnpt(2);
+                intersections
+            elseif( any(solnpt == 0) || any(solnpt == 1) )
+                % If any of this occurs, some endpoint of the polygonal curve 
+                % must have ended up on an edge; i.e. projection down the 
+                % third coordinate is invalid.
+                error(['A vertex has been projected onto the endpoint of ',...
+                       'another edge; the projection is invalid. ',...
+                       'Try "tilting" the knot slightly with a 3-d ',...
+                       'isometry, or double check to ensure that ',...
+                       'intersections are not happening already in ',...
+                       'the knot itself.']);
+            endif
         endfor
     endfor
 endfunction
